@@ -30,23 +30,103 @@ const CartProvider: React.FC = ({ children }) => {
 
   useEffect(() => {
     async function loadProducts(): Promise<void> {
-      // TODO LOAD ITEMS FROM ASYNC STORAGE
+      const res = await AsyncStorage.getItem('products');
+
+      if (res) {
+        setProducts(JSON.parse(res));
+      }
     }
 
     loadProducts();
   }, []);
 
-  const addToCart = useCallback(async product => {
-    // TODO ADD A NEW ITEM TO THE CART
-  }, []);
+  const increment = useCallback(
+    async id => {
+      const existProduct = products.find(item => item.id === id);
 
-  const increment = useCallback(async id => {
-    // TODO INCREMENTS A PRODUCT QUANTITY IN THE CART
-  }, []);
+      if (existProduct) {
+        const productsRest = products.filter(
+          item => item.id !== existProduct.id,
+        );
 
-  const decrement = useCallback(async id => {
-    // TODO DECREMENTS A PRODUCT QUANTITY IN THE CART
-  }, []);
+        const newProduct = {
+          id: existProduct.id,
+          title: existProduct.title,
+          image_url: existProduct.image_url,
+          price: existProduct.price,
+          quantity: existProduct.quantity + 1,
+        };
+
+        setProducts([newProduct, ...productsRest]);
+
+        await AsyncStorage.setItem(
+          'products',
+          JSON.stringify([newProduct, ...productsRest]),
+        );
+      } else {
+        await AsyncStorage.setItem('products', JSON.stringify([...products]));
+      }
+    },
+    [products],
+  );
+
+  const decrement = useCallback(
+    async id => {
+      const existProduct = products.find(item => item.id === id);
+
+      if (existProduct) {
+        const productsRest = products.filter(
+          item => item.id !== existProduct.id,
+        );
+
+        if (existProduct.quantity - 1 >= 0) {
+          const newProduct = {
+            id: existProduct.id,
+            title: existProduct.title,
+            image_url: existProduct.image_url,
+            price: existProduct.price,
+            quantity: existProduct.quantity - 1,
+          };
+
+          setProducts([newProduct, ...productsRest]);
+
+          await AsyncStorage.setItem(
+            'products',
+            JSON.stringify([newProduct, ...productsRest]),
+          );
+        }
+      } else {
+        await AsyncStorage.setItem('products', JSON.stringify([...products]));
+      }
+    },
+    [products],
+  );
+
+  const addToCart = useCallback(
+    async product => {
+      const existProduct = products.find(item => item.id === product.id);
+
+      if (!existProduct) {
+        const newProduct = {
+          id: product.id,
+          title: product.title,
+          image_url: product.image_url,
+          price: product.price,
+          quantity: 1,
+        };
+
+        setProducts([newProduct, ...products]);
+
+        await AsyncStorage.setItem(
+          'products',
+          JSON.stringify([newProduct, ...products]),
+        );
+      } else {
+        increment(existProduct.id);
+      }
+    },
+    [increment, products],
+  );
 
   const value = React.useMemo(
     () => ({ addToCart, increment, decrement, products }),
